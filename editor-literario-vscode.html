@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Editor Literario Local</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#faf6ef;--fg:#2a2118;--mu:#7a6a58;--card:#fff;--ac:#9c3b2e;--bd:#e4d9c6}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1814;--fg:#f0e6d6;--mu:#a6957f;--card:#27211b;--ac:#e07a5f;--bd:#3a3128}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 Georgia,'Times New Roman',serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:28px;margin:0}h2{font-size:20px;margin:28px 0 10px;color:var(--ac)}
+.sub{color:var(--mu);margin:4px 0 18px;font-family:system-ui,sans-serif;font-size:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px}
+textarea,input[type=text]{width:100%;box-sizing:border-box;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:8px;font:14px system-ui,sans-serif}
+textarea{height:110px}
+button,label.b{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:9px 16px;font:600 14px system-ui,sans-serif;cursor:pointer;display:inline-block}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.sc{text-align:center}.sc b{font-size:32px;display:block;color:var(--ac)}.sc span{font:13px system-ui,sans-serif;color:var(--mu)}
+.chip{display:inline-block;margin:3px;padding:3px 10px;border-radius:99px;border:1px solid var(--bd);font:13px system-ui,sans-serif;cursor:pointer}
+.chip.off{opacity:.35;text-decoration:line-through}
+.sc-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font:13px system-ui,sans-serif;min-width:620px}
+td,th{padding:5px 8px;border-bottom:1px solid var(--bd);text-align:left}
+.bar{height:8px;background:var(--ac);border-radius:4px;min-width:1px}
+.note{padding:8px 10px;border-left:4px solid var(--bd);margin:6px 0;font:14px system-ui,sans-serif;background:var(--card);border-radius:0 8px 8px 0}
+.alta{border-color:#c0392b}.media{border-color:#e0a030}.baja{border-color:#6a9a6a}
+svg text{fill:var(--fg);font:11px system-ui,sans-serif}
+#res{display:none}
+.vw{display:grid;grid-template-columns:1fr 300px;gap:12px;align-items:start;margin-top:8px}
+@media(max-width:800px){.vw{grid-template-columns:1fr}.side{position:static!important}}
+.v{background:#fffdf8;color:#222;max-height:80vh;overflow:auto;padding:24px 28px;border:1px solid var(--bd);border-radius:6px;font:16px/1.7 Georgia,serif}
+.v p{margin:0 0 .8em;padding:2px 6px;border-radius:3px}.v p.m{cursor:pointer}.v h4{margin:1.4em 0 .6em;color:#9c3b2e;font-size:15px}
+.side{position:sticky;top:10px;max-height:80vh;overflow:auto;font:13px system-ui}select{background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:8px}
+.v{position:relative}.rd{outline:2px solid #6a9bd8;background:#eef4fc;animation:pl 1s infinite alternate}@keyframes pl{to{background:#d6e6fa}}.ok{border-left:3px solid #cfe5cf}.sk{outline:1px dashed #c0392b}</style></head><body><main>
+<h1>📖 Editor Literario Local</h1>
+<p class="sub">Analiza tu borrador en tu propio navegador. Gratis, sin IA externa, tu texto no sale de tu equipo.</p>
+<div class="card">
+<div class="row" style="margin:0 0 10px"><label class="b">Subir .docx / .txt<input id="f" type="file" accept=".docx,.txt,.md" hidden></label><span id="fn" class="sub" style="margin:0">o pega el texto abajo</span></div>
+<textarea id="t" placeholder="Pega aquí tu borrador (los capítulos se detectan por líneas como «Capítulo 1», «Parte II», «1», «IV»)"></textarea>
+<div style="margin-top:8px"><input id="al" type="text" placeholder="Alias opcional: Juanito=Juan; el flaco=Juan"></div>
+<div class="row"><button id="go">Analizar</button><span id="st" class="sub" style="margin:0"></span></div>
+</div>
+<div id="res">
+<h2>Puntuación</h2><div class="grid" id="sc"></div>
+<h2>Revisión con IA (el profesor)</h2>
+<div class="card"><div class="row" style="margin:0"><select id="pv"><option value="g">Gemini (API key gratis)</option><option value="o">Ollama (local)</option><option value="x">Otro (compatible OpenAI)</option></select><input id="bu" type="text" placeholder="URL base, ej. https://api.groq.com/openai/v1" style="display:none;flex:1 1 100%"><input id="md" type="text" value="gemini-flash-latest" style="flex:1;min-width:150px"><input id="ky" type="password" placeholder="Pega aquí tu API key de Gemini" style="flex:2;min-width:200px"><button id="lm" style="background:var(--mu)">Buscar modelos</button><button id="pc" style="background:var(--mu)">Probar conexión</button></div>
+<div class="sub" style="margin:10px 0 4px">Sobre tu libro (el profesor lo lee antes de opinar):</div><textarea id="bk" style="height:96px">Novela en primera persona con múltiples narradores (Leo, Elizabeth, Miguel —el antagonista—, Esteban y Clara) que cambian sin aviso: el lector debe deducir quién narra por su personalidad y su voz. El monólogo interno es parte del estilo de cada voz; márcalo solo si de verdad es repetitivo. Evalúa también si cada voz se distingue de las demás.</textarea>
+<div class="sub" style="margin:10px 0 4px">Páginas de tu documento en Word (opcional; sirve para que «pág. ~» coincida con la tuya):</div><input id="tp" type="number" min="1" placeholder="ej. 600" style="max-width:160px">
+<div class="sub" style="margin:10px 0 4px">Narradores del libro (separados por coma; el programa también detecta voces nuevas):</div><input id="nv" type="text" value="Leo, Elizabeth, Miguel, Esteban, Clara">
+<div class="sub" style="margin:10px 0 4px">Si ya sabes quién narra algún capítulo, indícalo (opcional; ej. <i>4=Miguel, 6-7=Clara</i>) y se aplica sin gastar IA, incluso a lo ya revisado:</div><input id="no" type="text" placeholder="capítulo=narrador, capítulo=narrador">
+<div class="row"><button id="ai">Revisar con IA</button><button id="stp" style="background:var(--mu)">Detener</button><select id="cz"><option value="1400">Fragmentos pequeños (más precisión)</option><option value="3500" selected>Medianos (recomendado)</option><option value="7000">Grandes (menos peticiones)</option></select><select id="to"><option value="e">Tono equilibrado</option><option value="d">Modo duro (jurado de concurso)</option></select><label class="sub" style="margin:0"><input type="checkbox" id="fo" checked> Seguir la lectura</label><span id="ap" class="sub" style="margin:0"></span></div>
+<div style="height:6px;background:var(--bd);border-radius:4px;margin-top:8px"><div id="pb" style="height:6px;width:0;background:var(--ac);border-radius:4px"></div></div>
+<p class="sub" style="margin:8px 0 0">Funciona abriendo este archivo en tu PC. Tu texto viaja por fragmentos al proveedor que elijas; con Ollama no sale de tu equipo.</p></div>
+<div id="lg" style="margin-top:8px"></div>
+<div class="vw"><div class="v" id="v"></div><div class="side card" id="sd">Toca un párrafo marcado para ver el comentario.</div></div>
+<h2>Ayuda para terminar tu libro</h2>
+<div class="card"><div class="sub" style="margin:0 0 6px">Cuéntame qué te falta (ej.: <i>escribir el desenlace; cerrar la historia de Miguel; un capítulo narrado por Clara</i>). La IA propone ideas a partir de lo que ya leyó; tú decides y escribes la versión final.</div>
+<textarea id="fa" style="height:70px" placeholder="Qué te falta por escribir…"></textarea>
+<div class="row"><select id="fm"><option value="i">Ideas: cabos sueltos, finales posibles y próximas escenas</option><option value="e">Escena de ejemplo (borrador corto en la voz de un narrador)</option></select><input id="fn2" type="text" placeholder="Narrador de la escena (opcional)" style="flex:1;min-width:160px"><button id="fb">Pedir ayuda</button><span id="fs" class="sub" style="margin:0"></span></div>
+<div id="ayuda" style="margin-top:8px"></div>
+<div class="sub" style="margin:8px 0 0">Aviso: muchos concursos prohíben o piden declarar el texto generado con IA. Usa esto como lluvia de ideas y escribe tú la versión final.</div></div>
+<h2>Informe final del editor</h2><div id="final" class="sub">Aparece al terminar la revisión.</div>
+<h2>Puntuación por capítulo</h2><div id="cap" class="sub">Aparece mientras la IA revisa.</div>
+<h2>Lo más grave según el profesor</h2><div class="row" style="margin:0 0 8px"><input id="dq" type="text" placeholder="Descartar notas que mencionen… (ej. Santiago)" style="flex:1;min-width:200px"><button id="dx" style="background:var(--mu)">Descartar</button><span id="ds" class="sub" style="margin:0"></span></div><div id="top" class="sub">Aparece al revisar con IA.</div>
+<h2>Personas, apellidos, empresas y lugares (IA)</h2><div id="ents" class="sub">Aparecen mientras la IA lee.</div>
+<h2>Voces narrativas</h2><div id="voz" class="sub">Aparecen mientras la IA lee.</div>
+<h2>Perfiles psicológicos con IA</h2><div id="aiperf" class="sub">Aparecen al terminar la revisión.</div>
+<div class="row"><button id="dl2">Descargar informe IA</button></div>
+<h2>Personajes</h2><p class="sub">Toca un nombre para excluirlo (lugares, cosas) y el grafo se recalcula.</p>
+<div id="chips"></div>
+<div class="card" style="margin-top:8px"><svg id="g" viewBox="0 0 640 420" width="100%"></svg></div><div id="gi" class="sub" style="margin:8px 0"></div><div class="sub" style="margin:10px 0 4px"><b>Presencia por capítulo</b> (más oscuro = más menciones; el narrador cuenta por párrafos narrados)</div><div id="hm"></div>
+<h2>Qué cambiaría un editor</h2><div id="notes"></div><h2>Perfiles psicológicos (aproximados)</h2><div id="perf"></div><h2>Qué recortar o reescribir (párrafo por párrafo)</h2><div id="fl"></div><div class="row"><button id="dl">Descargar informe .txt</button></div>
+<h2>Capítulo por capítulo</h2><div class="card sc-wrap" id="tb"></div>
+<p class="sub">Análisis heurístico (estadística y reglas): orienta, no sustituye a un editor humano. Los personajes se detectan por nombres propios; los lugares pueden colarse y se excluyen con un toque.</p>
+</div></main>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+let S=null;
+$('#f').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('#fn').textContent=f.name;
+ try{if(/\.docx$/i.test(f.name)){const r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});$('#t').value=r.value}else $('#t').value=await f.text()}catch(x){$('#fn').textContent='No pude leer el archivo: '+x.message}};
+$('#go').onclick=()=>{const v=$('#t').value;if(v.trim().split(/\s+/).length<300){$('#st').textContent='Necesito al menos ~300 palabras.';return}
+ $('#st').textContent='Analizando…';setTimeout(()=>{try{run(v);$('#st').textContent='Listo ✓'}catch(x){$('#st').textContent='Error: '+x.message}},30)};
+function split(raw){const L=raw.replace(/\r/g,'').split('\n'),ch=[];let lastC='';let c={t:'Inicio',p:[],g:0};
+ const gidn={v:0},H=/^\s*(cap[ií]tulo|cap\.)\s+(\d{1,3}|[ivxl]{1,6}|[a-záéíóú]+)\b.{0,40}$|^\s*(pr[oó]logo|ep[ií]logo)\s*$|^\s*parte\s+(\d{1,3}|[ivxl]{1,6}|uno|dos|tres|cuatro|cinco)\b.{0,30}$|^\s*(\d{1,3}|[IVXL]{1,6})\.?\s*$/i;
+ for(const l of L){const tt=l.trim(),k=(tt.match(/^cap[ií]tulo\s+(\d+)/i)||[])[1];
+  if(tt.length<=60&&(/^cap/i.test(tt)||!/[.!?,]$/.test(tt))&&H.test(l)){if(k&&c.k===k)continue;if(c.p.length)ch.push(c);const pr=/^\s*parte\s/i.test(tt);if(!pr)lastC=tt;c={t:pr&&lastC?lastC+' · '+tt:tt,p:[],k:k||(pr?c.k:undefined),g:pr?c.g:++gidn.v}}else if(tt)c.p.push(tt)}
+ if(c.p.length)ch.push(c);
+ if(ch.length<2){ch.length=0;let b={t:'Bloque 1',p:[],g:1},w=0;for(const l of L.filter(x=>x.trim())){b.p.push(l);w+=l.split(/\s+/).length;if(w>4000){ch.push(b);b={t:'Bloque '+(ch.length+1),p:[],g:ch.length+1};w=0}}if(b.p.length)ch.push(b)}
+ return ch}
+const CL=['de repente','de pronto','no pudo evitar','un escalofrío','un nudo en','contuvo la respiración','suspiró','se encogió de hombros','como si','sus ojos','el corazón le','una sonrisa','sin embargo','a pesar de'];
+function run(raw){
+ for(const x of $('#al').value.split(/[;\n]/).map(x=>x.split('=')))if(x.length==2&&x[0].trim())raw=raw.replace(new RegExp('(?<![A-Za-zÁÉÍÓÚÑÜáéíóúñü])'+x[0].trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![A-Za-zÁÉÍÓÚÑÜáéíóúñü])','g'),x[1].trim());
+ const chs=split(raw),W=/[A-Za-zÁÉÍÓÚÑÜáéíóúñü]+/g,mid={},st={},low={},sl=[],start={},fc={},bg={};
+ let dw=0,tw=0;
+ chs.forEach((c,ci)=>{c.w=0;c.d=0;c.s=0;c.sw=0;
+  for(const p of c.p){const dl=/^[—–\-"«“]/.test(p),pw=(p.match(W)||[]).length;c.w+=pw;if(dl)c.d+=pw;
+   for(const s of p.split(/(?<=[.!?…])\s+/)){const t=s.match(W)||[];if(!t.length)continue;sl.push(t.length);c.s++;c.sw+=t.length;
+    const f=t[0].toLowerCase();start[f]=(start[f]||0)+1;
+    t.forEach((w,i)=>{if(/^[A-ZÁÉÍÓÚÑÜ]/.test(w)){if(w.length>2){fc[w]??=ci;if(i&&/^[A-ZÁÉÍÓÚÑÜ]/.test(t[i-1])&&t[i-1].length>2)bg[t[i-1]+' '+w]=(bg[t[i-1]+' '+w]||0)+1;if(i)mid[w]=(mid[w]||0)+1;else st[w]=(st[w]||0)+1}}else{const k=w.toLowerCase();low[k]=(low[k]||0)+1}})}}
+  tw+=c.w;dw+=c.d});
+ const cand=[...new Set([...Object.keys(mid),...Object.keys(st)])].filter(w=>((mid[w]||0)>=3&&(low[w.toLowerCase()]||0)<=mid[w]*.25)||((st[w]||0)>=12&&(low[w.toLowerCase()]||0)<=1)).map(w=>({n:w,c:(mid[w]||0)+(st[w]||0),ex:false,ch:chs.map(()=>0),first:-1,last:-1})).sort((a,b)=>b.c-a.c).slice(0,30);
+ const tt=w=>(mid[w]||0)+(st[w]||0),par={},fd=a=>{if(!(a in par))par[a]=a;return par[a]==a?a:(par[a]=fd(par[a]))},hd={};
+ for(const k in bg){const[a,b]=k.split(' ');if(bg[k]>=3&&bg[k]/tt(a)>=.7&&bg[k]/tt(b)>=.7)par[fd(b)]=fd(a)}
+ const grp={};for(const w in par)(grp[fd(w)]=grp[fd(w)]||[]).push(w);
+ const ord=g=>{let c=g.find(w=>!g.some(o=>o!=w&&bg[o+' '+w]>=3)),r=[];while(c&&!r.includes(c)){r.push(c);c=g.find(o=>bg[c+' '+o]>=3)}return r.length==g.length?r:g};
+ for(const g of Object.values(grp)){if(g.length<2)continue;const s2=[...g].sort((a,b)=>tt(b)-tt(a)),h=s2[0];if(!cand.some(x=>x.n==h))continue;s2.slice(1).forEach(w=>hd[w]=h);const hx=cand.find(x=>x.n==h);hx.d=ord(g).join(' ');hx.tk=g}
+ for(let i=cand.length-1;i>=0;i--)if(cand[i].n in hd)cand.splice(i,1);
+ const idx={};cand.forEach((x,i)=>idx[x.n]=i);for(const w in hd)idx[w]=idx[hd[w]];
+ const pars=[],PN=[];
+ const FL=[],EM={miedo:/\b(mied|temor|temi|asust|pánico|terror|trembl|tembl|horror|pavor|angusti)/,ira:/\b(rabi|furi|enoj|enfad|odi[oóa]|rencor|molest|irrit)/,tristeza:/\b(llor|lágrim|lagrim|triste|dolor|pena\b|vac[ií]o|soledad|sollo|luto)/,alegría:/\b(sonri|rei[rd]|ri[óo]\b|feliz|alegr|ilusi|risa|content)/,afecto:/\b(amor|besa|abraz|deseo|cariño|ternur|anhel|extrañ)/,culpa:/\b(culp|verg[üu]enza|remordim|arrepent|perd[oó]n)/,ansiedad:/\b(nervi|ansi|dud[aoó]|inquiet|incómod|insegur|preocup)/},
+ INT=/\b(pens[óoé]|record[óo]|imagin|se pregunt|sab[ií]a|comprend|entend|dud[óo]|deseaba|temía|quería|necesitaba)/,
+ TELL=/\b(se dio cuenta|comprendi[óo]|entendi[óo]|pens[óo] que|sinti[óo] que|sab[ií]a que|es decir|o sea|en otras palabras|en el fondo|la verdad es que|era como si)(?![a-záéíóúñ])/g,
+ NAME=/\b(estaba|estaban|se sent[ií]a|sent[ií]a)\s+(muy\s+)?(triste|feliz|enojad[oa]|asustad[oa]|nervios[oa]|ansios[oa]|incómod[oa]|culpable|sol[oa]|molest[oa]|confundid[oa])/;
+ const SN={},P={};cand.forEach(x=>P[x.n]={s:0,c:{},i:0,t:[{},{},{}]});
+ const bag=p=>{const m={};for(const w of p.toLowerCase().match(W)||[])if(w.length>3&&!(low[w]>tw/150))m[w]=(m[w]||0)+1;return m};
+ const cos=(a,b)=>{let d=0,na=0,nb=0;for(const k in a){na+=a[k]**2;if(b[k])d+=a[k]*b[k]}for(const k in b)nb+=b[k]**2;return na&&nb?d/Math.sqrt(na*nb):0};
+ chs.forEach((c,ci)=>{c.fl=0;c.np=0;let prev=[];const th=Math.min(2,Math.floor(ci/chs.length*3));
+  for(const p of c.p){const set=new Set(),ws=p.match(W)||[];for(const w of ws)if(w in idx)set.add(idx[w]);for(const m of p.matchAll(/([A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,}) ([A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,})/g))if(m[1] in idx&&m[1]!=m[2]&&!(low[m[2].toLowerCase()]>3)){const q=SN[m[1]]=SN[m[1]]||{};q[m[2]]=(q[m[2]]||0)+1}
+   set.forEach(i=>{const x=cand[i];x.ch[ci]++;if(x.first<0)x.first=ci;x.last=ci});PN.push([...set]);if(set.size>1)pars.push([...set]);
+   for(const s of p.split(/(?<=[.!?…])\s+/)){const sw=s.match(W)||[],ns=[...new Set(sw.filter(w=>w in idx))];if(!ns.length)continue;const sq=s.toLowerCase(),it=INT.test(sq);
+    for(const n of ns){const q=P[sw.find(w=>idx[w]==idx[n])||n];if(!q)continue;q.s++;if(it)q.i++;for(const k in EM)if(EM[k].test(sq)){q.c[k]=(q.c[k]||0)+1;q.t[th][k]=(q.t[th][k]||0)+1}}}
+   if(ws.length<25||/^[—–\-"«“]/.test(p))continue;c.np++;const b=bag(p),why=[];
+   if(prev.some(q=>cos(b,q)>.5))why.push('Repite ideas/palabras del párrafo anterior: candidato a recortar o fusionar.');
+   const tl=(p.toLowerCase().match(TELL)||[]).length;
+   if(tl>=2||tl/ws.length>.03)why.push('Explica lo que el lector ya entiende («se dio cuenta», «es decir»…): confía más en la escena.');
+   if(NAME.test(p))why.push('Nombra la emoción directamente («estaba triste»): muéstrala con gesto, cuerpo o acción.');
+   if(ws.length>200)why.push('Párrafo muy largo ('+ws.length+' palabras): dividir o recortar.');
+   if(why.length){c.fl++;FL.push({ci,x:p.slice(0,150),why})}
+   prev=[b,...prev].slice(0,3)}});
+ const N=chs.length,all=(raw.match(W)||[]).map(w=>w.toLowerCase()),txt=raw.toLowerCase();
+ const per=n=>n/tw*1000,cnt=r=>(txt.match(r)||[]).length;
+ const adv=per(cnt(/\b[a-záéíóúñ]{4,}mente\b/g)),ger=per(cnt(/\b[a-záéíóúñ]{3,}(ando|iendo|yendo)\b/g));
+ const cl=CL.map(k=>[k,cnt(new RegExp(k.replace(/ /g,'\\s+'),'g'))]).sort((a,b)=>b[1]-a[1]);const clT=per(cl.reduce((a,b)=>a+b[1],0));
+ const mean=sl.reduce((a,b)=>a+b,0)/sl.length,sd=Math.sqrt(sl.reduce((a,b)=>a+(b-mean)**2,0)/sl.length),cv=sd/mean,lng=sl.filter(x=>x>40).length/sl.length*100;
+ let m=0,k=0;for(let i=0;i+1000<=all.length;i+=1000){m+=new Set(all.slice(i,i+1000)).size/1000;k++}const mattr=k?m/k:.6;
+ const dr=dw/tw*100,ws=chs.map(c=>c.w).sort((a,b)=>a-b),med=ws[ws.length>>1],cm=ws.reduce((a,b)=>a+b,0)/N,ccv=Math.sqrt(ws.reduce((a,b)=>a+(b-cm)**2,0)/N)/cm;
+ const top5=cand.slice(0,5),cov=top5.length?top5.reduce((a,x)=>a+x.ch.filter(v=>v).length/N,0)/top5.length:0;
+ const cl100=x=>Math.max(0,Math.min(100,Math.round(x)));
+ const sc={'Estilo':cl100(100-Math.max(0,adv-5)*5-Math.max(0,ger-12)*2-Math.max(0,clT-1.5)*8),'Ritmo':cl100(cv/.65*100-Math.max(0,lng-6)*4),'Diálogo':cl100(100-Math.max(0,Math.abs(dr-38)-14)*3),'Personajes':cl100(cov/.6*100),'Estructura':cl100(100-Math.max(0,ccv-.3)*150),'Léxico':cl100((mattr-.45)/.25*100)};
+ sc['TOTAL']=cl100(Object.values(sc).reduce((a,b)=>a+b,0)/6);
+ const nt=[],add=(s,t)=>nt.push([s,t]);
+ chs.forEach((c,i)=>{const d=c.d/c.w*100,a=c.sw/c.s;
+  if(c.w>med*2.2)add('media',`«${c.t}» tiene ${c.w} palabras (${(c.w/med).toFixed(1)}× la mediana). ¿Se puede dividir o recortar?`);
+  if(c.w<med*.3&&c.w>0)add('baja',`«${c.t}» es muy corto (${c.w} palabras). ¿Es intencional o está sin desarrollar?`);
+  if(d<2&&c.w>med)add('media',`«${c.t}» casi no tiene diálogo (${d.toFixed(0)}%): bloque denso, riesgo de ritmo lento.`);
+  if(d>70)add('baja',`«${c.t}» es ${d.toFixed(0)}% diálogo: revisa que haya acción, entorno y subtexto.`);
+  if(a>28)add('media',`«${c.t}» tiene frases largas (promedio ${a.toFixed(0)} palabras).`)});
+ cand.slice(0,15).forEach(x=>{if(x.c>=15&&x.first<N*.5&&x.last<N*.6)add('alta',`${x.n} (${x.c} menciones) desaparece desde «${chs[x.last].t}». ¿Hilo suelto o cierre pendiente?`);
+  if(x.c>=8&&x.first>N*.8)add('media',`${x.n} entra muy tarde (primera aparición en «${chs[x.first].t}»): ¿está bien presentado?`)});
+ if(adv>6)add('media',`Adverbios en -mente: ${adv.toFixed(1)} por 1000 palabras (ideal <5). Cambia varios por verbos más precisos.`);
+ if(ger>14)add('media',`Gerundios: ${ger.toFixed(1)} por 1000 palabras. Suelen restar fuerza a la acción.`);
+ const tc=cl.filter(x=>x[1]>=5).slice(0,4);if(tc.length)add(clT>2?'alta':'media',`Muletillas/clichés frecuentes: ${tc.map(x=>`«${x[0]}» (${x[1]})`).join(', ')}.`);
+ const sf=Object.entries(start).filter(x=>!['y','pero','que','no'].includes(x[0])).sort((a,b)=>b[1]-a[1])[0];if(sf&&sf[1]/sl.length>.07)add('baja',`${(sf[1]/sl.length*100).toFixed(0)}% de tus frases empiezan con «${sf[0]}». Varía los arranques.`);
+ const dj=per(cnt(/\b(dijo|dijeron|respondió|preguntó)(?![a-záéíóúñ])/g));if(dj>9)add('baja',`«dijo/respondió/preguntó» aparece ${dj.toFixed(1)} veces por 1000 palabras. A veces basta la acción o prescindir de la etiqueta.`);
+ if(cv<.5)add('media','Longitud de frases muy uniforme: mezcla frases cortas y largas para dar ritmo.');
+ if(dr<15)add('media',`Solo ${dr.toFixed(0)}% es diálogo. Para ficción suele funcionar entre 25–50%.`);
+ if(mattr<.55)add('media','Vocabulario repetitivo (diversidad léxica baja).');
+ chs.forEach(c=>{if(c.np>=4&&c.fl/c.np>.3)add('alta',`«${c.t}»: ${c.fl} de ${c.np} párrafos con posible sobreexplicación o repetición (${Math.round(c.fl/c.np*100)}%). Revisa «Qué recortar».`)});
+ const lev=(a,b)=>{const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let q=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const t=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,q+(a[i-1]==b[j-1]?0:1));q=t}}return d[b.length]},tot=w=>(mid[w]||0)+(st[w]||0);
+ const nz=a=>a.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),sinTilde=[];
+ for(const t of new Set([...Object.keys(mid),...Object.keys(st)])){if(tot(t)>6||t.length<4||low[t.toLowerCase()]||t in idx||(t==t.toUpperCase()&&t.length>2))continue;
+  for(const n of cand){if(tot(n.n)<tot(t)*4||n.n.startsWith(t)||t.startsWith(n.n))continue;
+   if(nz(t)==nz(n.n)){sinTilde.push(`${t} → ${n.n} (${tot(t)}×)`);break}
+   if(n.n.length>=6&&Math.abs(n.n.length-t.length)<=2&&lev(t.toLowerCase(),n.n.toLowerCase())<=(n.n.length>=8?2:1)){add('media',`Posible error de escritura: «${t}» (${tot(t)}×, primera vez en «${chs[fc[t]].t}») parece ser «${n.n}» (${tot(n.n)}×).`);break}}}
+ if(sinTilde.length)add('baja',`Nombres sin tilde: ${sinTilde.slice(0,8).join(', ')}.`);
+ for(const n in SN){const L=Object.entries(SN[n]).filter(x=>x[1]>=2);if(L.length>=2)add('alta',`${n} aparece con apellidos distintos: ${L.map(x=>x[0]+' ('+x[1]+'×)').join(' / ')}. ¿Son sus dos apellidos o hubo un cambio?`)}
+ {const dc={'—':0,'–':0,'-':0,'"':0},bad=[];
+  chs.forEach(c=>c.p.forEach(p=>{const f=p[0];if('—–-"“«'.includes(f))dc[f=='“'||f=='«'?'"':f]++;
+   if((/^[—–\-]/.test(p)&&/[?!.]\s+(dijo|respondió|preguntó|contestó|exclamó|replicó|prosiguió|terminó|pregunté|respondí|dije|contesté)(?![A-Za-záéíóúñ])(?!\s+que)/i.test(p))||(/^[—–\-"“«]/.test(p)&&/[?!]\s+(pregunté|respondí|dije|contesté)(?![A-Za-záéíóúñ])/.test(p))||/^(Respondí|Dije|Contesté|Pregunté|Respondió|Dijo|Preguntó|Contestó|Exclamó|Replicó)(?![A-Za-záéíóúñ])/.test(p))bad.push(p)}));
+  const used=Object.entries(dc).filter(x=>x[1]>=3);
+  if(used.length>1)add('alta',`Diálogos con marcas distintas (${used.map(x=>x[1]+' con «'+x[0]+'»').join(', ')}). En español se usa la raya (—) y un solo estilo en todo el libro: unifícalo.`);
+  if(bad.length>=2)add('media',`${bad.length} diálogos con la acotación mal puntuada, p. ej. «${bad[0].slice(0,70)}…». Forma correcta: —Texto —dijo Ana—. Más texto. / —Texto —dijo Ana.`)}
+ {const G4={};for(const c of chs)for(const p of c.p){const ws=p.toLowerCase().match(W)||[];for(let i=0;i+4<=ws.length;i++){const g=ws.slice(i,i+4);if(!g.some(w=>w.length>=5))continue;const k=g.join(' ');G4[k]=(G4[k]||0)+1}}
+  const th=Math.max(3,Math.round(tw/20000)),top=Object.entries(G4).filter(x=>x[1]>=th).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(top.length)add('baja',`Frases que se repiten como muletilla: ${top.map(x=>'«'+x[0]+'» ('+x[1]+'×)').join(', ')}. Revisa si son un recurso o un tic.`)}
+ {const T={asi:'así',tambien:'también',ademas:'además',despues:'después',quizas:'quizás',alli:'allí',aqui:'aquí',todavia:'todavía',dia:'día',estupido:'estúpido',estupida:'estúpida',estupidos:'estúpidos',estupidas:'estúpidas'},f={};
+  for(const w of all)if(T.hasOwnProperty(w))f[w]=(f[w]||0)+1;const L=Object.entries(f);
+  if(L.length)add('baja',`Posibles tildes faltantes: ${L.map(([w,c])=>w+' → '+T[w]+' ('+c+'×)').join(', ')}.`)}
+ {const ks=[...new Set(chs.map(c=>+c.k).filter(Boolean))].sort((a,b)=>a-b),gp=[];for(let n=(ks[0]||1);n<=(ks[ks.length-1]||0);n++)if(!ks.includes(n))gp.push(n);
+  if(gp.length)add('alta',`No detecté encabezado para los capítulos ${gp.join(', ')}. Su texto quedó dentro de otro capítulo, y eso afecta las puntuaciones y los narradores. Revisa cómo escribiste esos títulos (¿«Capítulo 10.», «CAP. 10», sin salto de línea?).`)}
+ const o={alta:0,media:1,baja:2};nt.sort((a,b)=>o[a[0]]-o[b[0]]);
+ S={cand,pars,chs,sc,nt,tw,N,mean,FL,P,PN,ann:{}};buildV();draw()}
+function prof(n){const q=S.P[n];if(!q||q.s<10)return'';const tot=Object.values(q.c).reduce((a,b)=>a+b,0)||1,top=Object.entries(q.c).sort((a,b)=>b[1]-a[1]).slice(0,3),dom=k=>Object.entries(k).sort((a,b)=>b[1]-a[1])[0],a=dom(q.t[0]),z=dom(q.t[2]),it=q.i/q.s*100;
+ return`<b>${esc(n)}</b> (${q.s} frases): emociones dominantes → ${top.map(t=>t[0]+' '+Math.round(t[1]/tot*100)+'%').join(', ')||'poca carga emocional explícita'}. ${it>25?'Muy introspectivo/a (piensa, duda, recuerda).':it<10?'Más externo/a: se le ve actuar más que pensar.':'Equilibrio entre pensamiento y acción.'} ${a&&z?(a[0]===z[0]?`Su emoción central (${a[0]}) no cambia del inicio al final: ¿tiene arco?`:`Arco: del inicio (${a[0]}) al final (${z[0]}).`):''}`}
+function draw(){applyAI();const S_=S;
+ $('#res').style.display='block';
+ $('#sc').innerHTML=Object.entries(S_.sc).map(([k,v])=>`<div class="card sc"><b>${v}</b><span>${k}</span></div>`).join('');
+ $('#chips').innerHTML=S_.cand.map((x,i)=>`<span class="chip ${x.ex?'off':''}" data-i="${i}">${esc(DN(x))} · ${x.c}</span>`).join('');
+ document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const x=S.cand[c.dataset.i];x.ex=!x.ex;x.touched=1;draw()});
+ $('#notes').innerHTML=(S_.nt.length?S_.nt:[['baja','Sin alertas importantes. ¡Buen trabajo!']]).map(n=>`<div class="note ${n[0]}">${esc(n[1])}</div>`).join('')+`<div class="sub">${S_.tw.toLocaleString('es')} palabras · ${S_.N} capítulos/bloques · frase promedio ${S_.mean.toFixed(1)} palabras</div>`;
+ const act=S_.cand.map((x,i)=>({...x,i})).filter(x=>!x.ex).slice(0,15);drawG();
+ $('#perf').innerHTML=act.slice(0,8).map(x=>`<div class="note baja">${prof(x.n)||esc(x.n)+': pocas apariciones para perfilar.'}</div>`).join('');
+ const F=[...S_.FL].sort((a,b)=>b.why.length-a.why.length);
+ $('#fl').innerHTML=`<div class="sub">${F.length} párrafos marcados (se muestran los 60 más claros)</div>`+F.slice(0,60).map(f=>`<div class="note media"><b>${esc(S_.chs[f.ci].t.slice(0,40))}</b> · «${esc(f.x)}…»<br>${f.why.map(esc).join('<br>')}</div>`).join('');
+ $('#dl').onclick=()=>{const t=['INFORME DE REVISIÓN','',...Object.entries(S_.sc).map(x=>x[0]+': '+x[1]),'','NOTAS',...S_.nt.map(n=>`[${n[0]}] ${n[1]}`),'','PERFILES',...act.slice(0,8).map(x=>prof(x.n).replace(/<[^>]+>/g,'')),'','PÁRRAFOS A REVISAR',...F.map(f=>`- ${S_.chs[f.ci].t}: «${f.x}…» → ${f.why.join(' ')}`)].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/plain'}));a.download='informe.txt';a.click()};
+ const mw=Math.max(...S_.chs.map(c=>c.w));
+ $('#tb').innerHTML='<table><tr><th>Capítulo</th><th>Palabras</th><th></th><th>Diál.</th><th>Frase prom.</th><th>Más presentes</th><th>Revisar</th></tr>'+S_.chs.map((c,i)=>{
+  const tp=act.map(x=>[x.n,S_.cand[x.i].ch[i]]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]).join(', ');
+  return`<tr><td>${esc(c.t.slice(0,38))}</td><td>${c.w}</td><td style="width:22%"><div class="bar" style="width:${c.w/mw*100}%"></div></td><td>${(c.d/c.w*100).toFixed(0)}%</td><td>${(c.sw/c.s).toFixed(0)}</td><td>${esc(tp)}</td><td>${c.fl}/${c.np}</td></tr>`}).join('')+'</table>'}
+
+const TY=[['sobreexplicacion','Sobreexplicación','#ffb347','✂','Recorta: explica de más lo que el lector ya entendió.'],['relleno','Relleno / repetición','#ff5c5c','🗑','Elimina o fusiona: repite o no aporta nada nuevo.'],['mostrar','Contar en vez de mostrar','#ffe94d','👁','Reescribe con acción, gesto o detalle en vez de explicar la emoción.'],['dialogo','Diálogo','#5aa9ff','💬','Reescribe: suena artificial o no revela al personaje.'],['ritmo','Ritmo / estructura','#b583ff','🎵','Reorganiza: divide, acorta o reordena frases y párrafos.'],['estilo','Estilo / redacción','#ff8fc7','✒','Pule: cliché, metáfora fallida o frase torpe.'],['incoherencia','Continuidad','#38d6c4','⚠','Corrige: nombre, dato o hecho que no cuadra.'],['ortografia','Ortografía / puntuación','#a9b7c6','🔤','Corrige: tilde, puntuación, raya de diálogo o errata.'],['voz','Voz del narrador','#c9a27a','🎭','Refuerza la voz o añade una pista de quién narra.'],['acierto','Acierto','#8be04e','★','Conserva: esto funciona bien.']],TN=t=>(TY.find(x=>x[0]==t)||[t,t,'#ddd','•','']);
+document.head.insertAdjacentHTML('beforeend','<style>'+TY.map(t=>`.t-${t[0]}{background:${t[2]}b8}.h-${t[0]} .t-${t[0]}{background:none!important}`).join('')+'.t-auto{border-bottom:2px dashed #999}.g3{border-left:4px solid #c0392b}.g2{border-left:4px solid #e0a030}mark{color:inherit;border-radius:3px;padding:0 2px}sup{font-size:10px}.nv{display:inline-block;font:700 11px system-ui;background:#2a2118;color:#fff;border-radius:4px;padding:1px 6px;margin-right:6px}.lgs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px}.lgi{cursor:pointer;font:12px system-ui;padding:6px 8px;border:1px solid var(--bd);border-radius:8px}.lgi.off{opacity:.35}.lgi b{padding:1px 8px;border-radius:99px;color:#222}</style>');
+try{$('#ky').value=localStorage.getItem('k')||''}catch(e){}
+const sleep=ms=>new Promise(z=>setTimeout(z,ms));
+function buildV(){S.nb={};S.nar=[];S.vc={};S.paras=[];let cw=0,tw_=0;S.chs.forEach(c=>c.p.forEach(t=>tw_+=t.split(/\s+/).length));const tp=+($('#tp')||{}).value||0,wpp=tp>0?tw_/tp:250;S.chs.forEach((c,ci)=>c.p.forEach((t,pi)=>{cw+=t.split(/\s+/).length;S.paras.push({ci,t,h:!pi,pg:Math.max(1,Math.ceil(cw/wpp))})}));const fm=S.fm={};S.FL.forEach(f=>fm[f.x]=f.why);
+ $('#v').innerHTML=S.paras.map((p,i)=>(p.h?`<h4>${esc(S.chs[p.ci].t)}</h4>`:'')+`<p id="p${i}" data-i="${i}" class="${fm[p.t.slice(0,150)]?'t-auto m':''}">${esc(p.t)}</p>`).join('');
+ $('#lg').innerHTML='<div class="lgs">'+TY.map(t=>`<div class="lgi" data-t="${t[0]}"><b style="background:${t[2]}">${t[3]} ${t[1]}</b><br>${t[4]}</div>`).join('')+'</div><div class="sub">Subrayado punteado = detectado por reglas locales. Toca un color para ocultarlo o mostrarlo.</div>';
+ document.querySelectorAll('#lg [data-t]').forEach(c=>c.onclick=()=>{$('#v').classList.toggle('h-'+c.dataset.t);c.classList.toggle('off')});
+ $('#v').onclick=e=>{const q=e.target.closest('p');if(q)show(+q.dataset.i)}}
+function show(i){const a=S.ann[i]||[],f=S.fm[S.paras[i].t.slice(0,150)]||[];
+ $('#sd').innerHTML=`<div class="sub" style="margin:0 0 6px">${esc(S.chs[S.paras[i].ci].t)} · pág. ~${S.paras[i].pg}</div>`+(S.nb[i]?`<div class="note baja">🎭 Aquí empieza a narrar <b>${esc(S.nb[i])}</b></div>`:'')+a.map((n,ix)=>`<div class="note" style="border-color:${TN(n.t)[2]}"><b>${TN(n.t)[3]} ${TN(n.t)[1]}</b> (gravedad ${n.g}/3)<br>${esc(n.c)}${n.f?`<br><i>«${esc(n.f)}»</i>`:''}<br><small><b>Qué hacer:</b> ${TN(n.t)[4]}</small><br><button class="dsc" data-i="${i}" data-k="${ix}" style="background:var(--mu);padding:2px 8px;font-size:11px;margin-top:4px">Descartar esta nota</button></div>`).join('')+f.map(w=>`<div class="note">🔎 ${esc(w)}</div>`).join('')||'Sin comentarios en este párrafo.'}
+function paint(i){const a=S.ann[i]||[],t=S.paras[i].t,e=$('#p'+i);if(!a.length&&!S.nb[i])return;const R=[];let whole=null;
+ for(const n of [...a].sort((x,y)=>y.g-x.g)){const k=n.f&&n.f.length>8?t.indexOf(n.f):-1;if(k>=0&&!R.some(r=>k<r[1]&&k+n.f.length>r[0]))R.push([k,k+n.f.length,n]);else if(!whole)whole=n}
+ R.sort((x,y)=>x[0]-y[0]);let h=S.nb[i]?`<span class="nv">🎭 ${esc(S.nb[i])}</span>`:'',c=0;
+ for(const[x,y,n]of R){h+=esc(t.slice(c,x))+`<mark class="t-${n.t}">${esc(t.slice(x,y))}<sup>${TN(n.t)[3]}</sup></mark>`;c=y}
+ h+=esc(t.slice(c))+(whole?`<sup>${TN(whole.t)[3]}</sup>`:'');e.innerHTML=h;const mg=a.length?Math.max(...a.map(n=>n.g)):0;e.className='m ok'+(whole?' t-'+whole.t:'')+(mg>1?' g'+mg:'')}
+const CN=n=>{const nz=a=>String(a).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),L=($('#nv').value||'').split(/[,;]/).map(x=>x.trim()).filter(Boolean);
+ for(const g of S.mismos||[])if(Array.isArray(g)&&g.slice(1).some(a=>nz(a)==nz(n)))return L.find(a=>nz(a)==nz(g[0]))||g[0];
+ return L.find(a=>nz(a)==nz(n)||(Math.min(a.length,String(n).length)>=3&&(nz(n).startsWith(nz(a))||nz(a).startsWith(nz(n)))))||n};
+function canonN(){const N=[...new Set((S.nar||[]).map(n=>n.n))],nz=a=>a.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),L=($('#nv').value||'').split(/[,;]/).map(x=>x.trim()).filter(Boolean),m={};N.forEach(a=>{const f=L.find(l=>nz(l)==nz(a)||(Math.min(l.length,a.length)>=3&&(nz(a).startsWith(nz(l))||nz(l).startsWith(nz(a)))))||N.filter(b=>b!=a&&b.length>a.length&&a.length>=3&&nz(b).startsWith(nz(a)))[0];m[a]=f||a});return n=>m[n]||n}
+function voces(){const cz=canonN(),A=[...(S.nar||[])].map(n=>({...n,n:cz(n.n)})).sort((a,b)=>a.i-b.i),M={};let cn=null,k=0;
+ S.paras.forEach((p,i)=>{while(k<A.length&&A[k].i<=i){cn=CN(A[k].n);k++}if(!cn||!$('#p'+i).classList.contains('ok'))return;const m=M[cn]=M[cn]||{n:cn,p:0,w:0,s:0,ex:0,co:0},ws=p.t.match(/[A-Za-zÁÉÍÓÚÑÜáéíóúñü]+/g)||[];
+  m.p++;m.w+=ws.length;m.s+=(p.t.match(/[.!?…]+(\s|$)/g)||[]).length||1;m.ex+=(p.t.match(/[!¡¿?]/g)||[]).length;m.co+=(p.t.match(/,/g)||[]).length});
+ return Object.values(M).filter(m=>m.w>300).map(m=>({n:m.n,p:m.p,w:m.w,fr:(m.w/m.s).toFixed(1),ex:(m.ex/m.w*1000).toFixed(1),co:(m.co/m.s).toFixed(1)}))}
+function rVoz(g){const V=voces();if(!V.length){$('#voz').textContent='Aún no hay datos de narradores.';return}
+ let h='<div class="card sc-wrap"><table><tr><th>Narrador</th><th>Párrafos</th><th>Palabras</th><th>Frase prom.</th><th>Comas/frase</th><th>!¿? por 1000</th></tr>'+V.map(v=>`<tr><td><b>${esc(v.n)}</b></td><td>${v.p}</td><td>${v.w}</td><td>${v.fr}</td><td>${v.co}</td><td>${v.ex}</td></tr>`).join('')+'</table></div>';
+ const sim=[];for(let a=0;a<V.length;a++)for(let b=a+1;b<V.length;b++){const x=V[a],y=V[b];if(Math.abs(x.fr-y.fr)/Math.max(x.fr,y.fr)<.12&&Math.abs(x.co-y.co)/Math.max(x.co,y.co,.1)<.15)sim.push(`${x.n} y ${y.n} suenan parecido en ritmo y puntuación.`)}
+ S.vzt=[...V.map(v=>`${v.n}: ${v.w} palabras, frase prom. ${v.fr}, comas/frase ${v.co}`),...sim,...(g?[g.general||'',...(g.voces||[]).map(v=>`${v.n} [${v.distintiva}]: ${v.diagnostico} → ${v.sugerencia}`)]:[])];
+ h+=sim.map(t=>`<div class="note media">${esc(t)}</div>`).join('')+(g?`<div class="note baja">${esc(g.general||'')}</div>`+(g.voces||[]).map(v=>`<div class="note ${v.distintiva=='baja'?'alta':v.distintiva=='media'?'media':'baja'}"><b>${esc(v.n)}</b> · voz ${esc(v.distintiva)}: ${esc(v.diagnostico)}<br><small>${esc(v.sugerencia)}</small></div>`).join(''):'');$('#voz').innerHTML=h}
+async function ask(prompt){const pv=$('#pv').value,o=pv=='o',x=pv=='x',k=$('#ky').value.trim(),m=$('#md').value.trim(),ms=(o||x)?[m]:[...new Set([m,'gemini-flash-lite-latest'])];let last='';
+ const E=(kind,msg)=>{const e=new Error(msg);e.kind=kind;return e},SS=['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH','HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT'].map(c=>({category:c,threshold:'BLOCK_NONE'}));
+ for(let n=0;n<6;n++){const mo=ms[n%ms.length];let r;
+  try{if(o)r=await fetch('http://localhost:11434/api/chat',{method:'POST',body:JSON.stringify({model:m,stream:false,format:'json',messages:[{role:'user',content:prompt}]})});
+   else if(x)r=await fetch($('#bu').value.trim().replace(/\/$/,'')+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+k},body:JSON.stringify({model:m,temperature:.4,response_format:{type:'json_object'},messages:[{role:'user',content:prompt}]})});
+   else r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${mo}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':k},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],safetySettings:SS,generationConfig:{responseMimeType:'application/json',temperature:.4}})})}
+  catch(e){last='red: '+e.message;if(n>=2)throw E('net','No pude conectar con el servicio ('+e.message+'). Revisa tu internet y que el archivo esté abierto con Live Server.');await sleep(3000);continue}
+  if(r.status==429||r.status==503){last=r.status+' '+(await r.text()).replace(/\s+/g,' ').slice(0,300);if((n+1)%ms.length){$('#ap').textContent='Límite en '+mo+', probando otro modelo…';continue}$('#ap').textContent='Límite o saturación ('+r.status+'), esperando 30 s…';await sleep(30000);continue}
+  if(!r.ok)throw E('auth','Error '+r.status+' con el modelo «'+mo+'»: '+(await r.text()).replace(/\s+/g,' ').slice(0,300));
+  const j=await r.json();let t='';
+  if(o)t=j.message.content;else if(x)t=j.choices[0].message.content;else{
+   if(j.promptFeedback&&j.promptFeedback.blockReason)throw E('block','la IA bloqueó este pasaje con sus filtros ('+j.promptFeedback.blockReason+')');
+   const c=(j.candidates||[])[0];if(!c||!c.content||!c.content.parts)throw E('block','la IA no devolvió texto ('+((c&&c.finishReason)||'sin respuesta')+')');
+   if(c.finishReason=='MAX_TOKENS')throw E('trunc','la respuesta de la IA se cortó por ser demasiado larga');
+   t=c.content.parts.map(p=>p.text||'').join('')}
+  try{return JSON.parse(t.replace(/^\s*```json|```\s*$/g,'').trim())}catch(e){last='ilegible: '+t.slice(0,100);if(n>=1)throw E('parse','la IA devolvió algo ilegible: «'+t.slice(0,80)+'…»');await sleep(2000)}}
+ const h=/limit:\s*0/i.test(last)?' Parece que tu proyecto NO tiene cupo gratis para este modelo: prueba otro con «Buscar modelos» o usa Ollama.':/PerDay|per day|daily|diari/i.test(last)?' Parece el cupo DIARIO.':/PerMinute|per minute/i.test(last)?' Parece el límite por minuto: espera un momento.':'';
+ throw E('quota','Cuota agotada o servicio saturado. Último mensaje de Google: '+last+'.'+h+' Tu avance quedó guardado.')}
+const DN=x=>x.d||x.n;
+function applyAI(){const V={};for(const[n,e]of Object.entries(S.en||{}))n.split(/\s+/).forEach((t,j,A)=>{const ty=e.t=='persona'?(j&&!/^(don|doña|dona|señor|señora|sr|sra|doctor|doctora|dr|dra|profesor|profesora|tío|tía)$/i.test(A[0])?'apellido':'persona'):e.t,v=V[t]=V[t]||{};v[ty]=(v[ty]||0)+e.c});
+ S.cand.forEach(x=>{const v=V[x.n];if(!v||x.touched)return;x.ex=Object.entries(v).sort((a,b)=>b[1]-a[1])[0][0]!='persona'})}
+function narrOf(){const cz=canonN(),A=[...(S.nar||[])].map(n=>({...n,n:cz(n.n)})).sort((a,b)=>a.i-b.i),r=[];let c=null,k=0;S.paras.forEach((p,i)=>{while(k<A.length&&A[k].i<=i){c=CN(A[k].n);k++}r.push(c&&$('#p'+i).classList.contains('ok')?c:null)});return r}
+function drawG(){const canon={};for(const g of S.mismos||[])if(Array.isArray(g))g.slice(1).forEach(a=>canon[a]=g[0]);
+ const act=S.cand.filter(x=>!x.ex).slice(0,15),as=new Set(act),toks=act.map(x=>x.n),cn=n=>canon[n]||toks.find(t=>t.length>n.length&&n.length>=3&&t.startsWith(n))||n,nc=S.chs.length,N={},E={},NR=narrOf(),mk=n=>N[n]=N[n]||{n,c:0,ch:Array(nc).fill(0)};
+ act.forEach(x=>{const o=mk(cn(x.n));o.c+=x.c;x.ch.forEach((v,i)=>o.ch[i]+=v);if(x.d)o.l=x.d});
+ NR.forEach((n,i)=>{if(!n)return;const o=mk(cn(n));o.c++;o.ch[S.paras[i].ci]++;o.nar=1});
+ S.paras.forEach((p,i)=>{const ks=new Set((S.PN[i]||[]).map(j=>S.cand[j]).filter(x=>as.has(x)).map(x=>cn(x.n)));if(NR[i])ks.add(cn(NR[i]));const a=[...ks];for(let u=0;u<a.length;u++)for(let v=u+1;v<a.length;v++){const k=[a[u],a[v]].sort().join('|');E[k]=(E[k]||0)+1}});
+ const nd=Object.values(N).filter(o=>o.c>0).sort((a,b)=>b.c-a.c).slice(0,16),by={};nd.forEach(o=>by[o.n]=o);
+ const ed=Object.entries(E).map(([k,w])=>{const[a,b]=k.split('|');return{a:by[a],b:by[b],w}}).filter(e=>e.a&&e.b&&e.w>=2).sort((a,b)=>b.w-a.w).slice(0,50),mx=ed.length?ed[0].w:1;ed.forEach(e=>e.max=mx);
+ const Wd=640,Ht=420;nd.forEach((n,i)=>{const a=i/nd.length*6.283;n.x=Wd/2+Math.cos(a)*150;n.y=Ht/2+Math.sin(a)*150;n.vx=n.vy=0});
+ for(let it=0;it<300;it++){for(const a of nd){for(const b of nd){if(a===b)continue;const dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy)||1,f=3000/(d*d);a.vx+=dx/d*f;a.vy+=dy/d*f}a.vx+=(Wd/2-a.x)*.01;a.vy+=(Ht/2-a.y)*.01}
+  for(const e of ed){const dx=e.b.x-e.a.x,dy=e.b.y-e.a.y,d=Math.hypot(dx,dy)||1,f=(d-110)*.02*Math.min(1,e.w/e.max*3+.2);e.a.vx+=dx/d*f;e.a.vy+=dy/d*f;e.b.vx-=dx/d*f;e.b.vy-=dy/d*f}
+  for(const n of nd){n.x=Math.max(35,Math.min(Wd-35,n.x+n.vx*.5));n.y=Math.max(20,Math.min(Ht-20,n.y+n.vy*.5));n.vx*=.6;n.vy*=.6}}
+ const sel=S.sel&&by[S.sel]?S.sel:null,mc=nd.length?nd[0].c:1,hl=e=>!sel||e.a.n==sel||e.b.n==sel,LB=n=>n.l||n.n;
+ $('#g').innerHTML=ed.map(e=>`<line x1="${e.a.x}" y1="${e.a.y}" x2="${e.b.x}" y2="${e.b.y}" stroke="var(--ac)" stroke-width="${(.5+e.w/mx*5).toFixed(1)}" opacity="${hl(e)?.6:.07}"><title>${esc(LB(e.a))} – ${esc(LB(e.b))}: ${e.w} escenas juntos</title></line>`).join('')+
+  nd.map(n=>`<g data-n="${esc(n.n)}" style="cursor:pointer" opacity="${!sel||n.n==sel||ed.some(e=>hl(e)&&(e.a==n||e.b==n))?1:.25}"><circle cx="${n.x}" cy="${n.y}" r="${(6+Math.sqrt(n.c/mc)*14).toFixed(1)}" fill="${n.nar?'#e0a030':'var(--ac)'}" stroke="${n.n==sel?'#fff':'none'}" stroke-width="2"/><text x="${n.x}" y="${n.y-12-Math.sqrt(n.c/mc)*10}" text-anchor="middle">${esc(LB(n))}${n.nar?' 🎭':''}</text></g>`).join('');
+ $('#g').querySelectorAll('[data-n]').forEach(el=>el.onclick=()=>{S.sel=S.sel==el.dataset.n?null:el.dataset.n;drawG()});
+ if(sel){const o=by[sel],pr=ed.filter(e=>e.a==o||e.b==o).sort((a,b)=>b.w-a.w).slice(0,5).map(e=>`${esc(LB(e.a==o?e.b:e.a))} (${e.w})`),pc=o.ch.map((v,i)=>v?i:-1).filter(i=>i>=0),pf=(S.pf||[]).find(p=>cn(p.n)==sel||p.n==sel);
+  $('#gi').innerHTML=`<b>${esc(LB(o))}</b>${o.nar?' (narrador)':''}: ${o.c} ${o.nar?'párrafos narrados y menciones':'menciones'}; aparece en ${pc.length} de ${nc} capítulos${pc.length?` (de «${esc(S.chs[pc[0]].t.slice(0,25))}» a «${esc(S.chs[pc[pc.length-1]].t.slice(0,25))}»)`:''}. Más escenas con: ${pr.join(', ')||'nadie aún'}.${pf?`<br><i>${esc(pf.perfil)}</i>`:''}`}
+ else $('#gi').textContent='Toca un personaje para ver con quién comparte escenas y en qué capítulos aparece. 🎭 = narrador.';
+ const mv=Math.max(1,...nd.flatMap(n=>n.ch));
+ $('#hm').innerHTML='<div class="sc-wrap"><table style="min-width:0"><tr><th></th>'+S.chs.map((c,i)=>`<th title="${esc(c.t)}" style="padding:2px;font-size:10px">${i+1}</th>`).join('')+'</tr>'+nd.map(n=>`<tr><td><b>${esc(LB(n))}</b></td>${n.ch.map(v=>`<td style="padding:0;min-width:14px;height:18px;background:color-mix(in srgb,var(--ac) ${v?15+85*v/mv:3}%,transparent)"></td>`).join('')}</tr>`).join('')+'</table></div>'}
+function capData(){return S.chs.map((c,ci)=>{const ix=[];S.paras.forEach((p,i)=>{if(p.ci==ci)ix.push(i)});if(!ix.length)return null;
+ const an=ix.filter(i=>$('#p'+i).classList.contains('ok')).length/ix.length,nt=ix.flatMap(i=>(S.ann[i]||[]).map(n=>({...n,i}))),ok=nt.filter(n=>n.t=='acierto'),bad=nt.filter(n=>n.t!='acierto').sort((a,b)=>b.g-a.g),g=[0,0,0,0],cnt={};
+ bad.forEach(n=>{if(n.t=='ortografia')g[1]++;else g[n.g]++;cnt[n.t]=(cnt[n.t]||0)+1});const dens=(3*g[3]+1.5*g[2]+.5*g[1])/Math.max(1,c.w/1000),fr=c.np?c.fl/c.np:0,L=n=>`${n.c} (pág. ~${S.paras[n.i].pg})`;
+ return{ci,t:c.t,w:c.w,an,pg:[S.paras[ix[0]].pg,S.paras[ix[ix.length-1]].pg],score:Math.round(Math.min(85,Math.max(50,100-4*dens-20*fr+2*Math.min(ok.length,5)))),cnt,fun:ok.slice(0,3).map(L),cam:bad.slice(0,3).map(L),funTxt:ok.map(n=>n.c),badTxt:bad.map(n=>n.c)}}).filter(Boolean)}
+function rCap(){const D=capData().filter(d=>d.an>=.5);S.cdt=D;if(!D.length){$('#cap').textContent='Aparece mientras la IA revisa.';return}
+ $('#cap').innerHTML=D.map(d=>{const a=(S.capAI||{})[d.ci],sc=a?a.puntaje:d.score,fn=a?a.funciona:d.fun,cm=a?a.cambiar:d.cam;
+  return`<div class="card" style="margin:8px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>${esc(d.t.slice(0,60))}</b><span class="sub" style="margin:0">pág. ~${d.pg[0]}–${d.pg[1]} · ${d.w} palabras</span></div><div style="font:700 26px Georgia;color:var(--ac)">${sc}/100 <span class="sub" style="font-size:12px">${a?'(calificado por la IA)':'(provisional: estimado por las notas, poco fiable)'}${d.an<.95?' · revisión parcial':''}</span></div><div style="height:6px;background:var(--bd);border-radius:4px"><div class="bar" style="width:${sc}%;height:6px"></div></div><div class="grid" style="margin-top:8px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))"><div><b>✅ Funciona</b>${(fn.length?fn:['—']).map(x=>`<div class="note baja">${esc(x)}</div>`).join('')}</div><div><b>✏ Cambiar</b>${(cm.length?cm:['—']).map(x=>`<div class="note media">${esc(x)}</div>`).join('')}</div></div></div>`}).join('')}
+function rFinal(f){S.fiT=[f.resumen||'','FORTALEZAS',...(f.fortalezas||[]).map(x=>'+ '+x),'PROBLEMAS RECURRENTES',...(f.problemas||[]).map(p=>`- ${p.titulo}: ${p.detalle} (${p.donde||''})`),'PLAN DE REVISIÓN',...(f.plan||[]).map((x,i)=>`${i+1}. ${x}`)];
+ $('#final').innerHTML=`<div class="note baja">${esc(f.resumen||'')}</div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))"><div><b>✅ Fortalezas</b>${(f.fortalezas||[]).map(x=>`<div class="note baja">${esc(x)}</div>`).join('')}</div><div><b>⚠ Problemas recurrentes</b>${(f.problemas||[]).map(p=>`<div class="note media"><b>${esc(p.titulo||'')}</b>: ${esc(p.detalle||'')}<br><small>${esc(p.donde||'')}</small></div>`).join('')}</div></div><b>📋 Plan de revisión</b>${(f.plan||[]).map((x,i)=>`<div class="note alta">${i+1}. ${esc(x)}</div>`).join('')}`}
+function rTop(){const T=Object.entries(S.ann).flatMap(([i,a])=>a.filter(n=>n.g==3&&n.t!='acierto').map(n=>({i,...n}))).slice(0,30);
+ $('#top').innerHTML=T.map(n=>`<div class="note alta" data-i="${n.i}" style="cursor:pointer"><b>${esc(S.chs[S.paras[n.i].ci].t.slice(0,35))} (pág. ~${S.paras[n.i].pg})</b> · ${TN(n.t)[3]} ${TN(n.t)[1]}: ${esc(n.c)}</div>`).join('')||'Nada grave.';
+ document.querySelectorAll('#top [data-i]').forEach(d=>d.onclick=()=>{$('#p'+d.dataset.i).scrollIntoView({block:'center'});show(+d.dataset.i)})}
+function descartar(f){let n=0;for(const i in S.ann){const a=S.ann[i],k=a.filter(x=>!f(x));if(k.length!=a.length){n+=a.length-k.length;if(k.length)S.ann[i]=k;else delete S.ann[i];const e=$('#p'+i);e.innerHTML=(S.nb[i]?`<span class="nv">🎭 ${esc(S.nb[i])}</span>`:'')+esc(S.paras[i].t);e.className='m ok';paint(i)}}
+ try{const key='prog3'+S.paras.length+'_'+S.paras[0].t.slice(0,30),sv=JSON.parse(localStorage.getItem(key)||'null');if(sv){sv.ann=S.ann;localStorage.setItem(key,JSON.stringify(sv))}}catch(e){}
+ rTop();rCap();return n}
+$('#dx').onclick=()=>{const q=$('#dq').value.trim().toLowerCase();if(!S||!q)return;$('#ds').textContent=descartar(x=>(x.c+' '+(x.f||'')).toLowerCase().includes(q))+' notas descartadas. Para recalcular las calificaciones: Revisar con IA → aceptar.'};
+$('#sd').onclick=e=>{const b=e.target.closest('.dsc');if(!b)return;const i=+b.dataset.i,x=S.ann[i][+b.dataset.k];descartar(y=>y===x);show(i)};
+function rEnt(){const G={};Object.entries(S.en||{}).forEach(([n,e])=>(G[e.t]=G[e.t]||[]).push([n,e]));
+ $('#ents').innerHTML=Object.entries(G).map(([t,a])=>`<div class="note baja"><b>${esc(t)}</b>: ${a.sort((x,y)=>y[1].c-x[1].c).slice(0,40).map(([n,e])=>esc(n)+(e.r?` <i>(${esc(e.r)})</i>`:'')).join(' · ')}</div>`).join('')+(S.al||[]).map(a=>`<div class="note alta">⚠ ${esc(a)}</div>`).join('')}
+let stop=false;$('#stp').onclick=()=>stop=true;
+$('#pv').onchange=()=>$('#bu').style.display=$('#pv').value=='x'?'block':'none';
+$('#ai').onclick=async()=>{if(!S)return;const key=$('#ky').value.trim(),pv=$('#pv').value,loc=pv=='o';if(!loc&&!key){$('#ap').textContent='Falta la API key.';return}
+ if(pv=='x'&&!$('#bu').value.trim()){$('#ap').textContent='Falta la URL base.';return}
+ try{localStorage.setItem('k',key)}catch(e){}
+ stop=false;S.ann={};S.ps={};S.vd=[];S.pf=[];S.en={};S.al=[];S.errs=[];S.skipped=[];S.flag=[];buildV();const Z=+$('#cz').value,bk=$('#bk').value.trim(),hard=$('#to').value=='d',chunk=Z=>{const G=[];let cur=[],w=0;S.paras.forEach((p,i)=>{const n=p.t.split(/\s+/).length;if(cur.length&&(w+n>Z||p.ci!=cur[0].ci)){G.push(cur);cur=[];w=0}cur.push({i,t:p.t,ci:p.ci})});if(cur.length)G.push(cur);return G},G=chunk(Z);let lastN='';const NV=$('#nv').value.split(/[,;]/).map(x=>x.trim()).filter(Boolean),OV={};
+ $('#no').value.split(/[,;\n]/).forEach(x=>{const[a,b]=x.split('=').map(y=>y.trim()),m=a&&a.match(/^(\d+)(?:-(\d+))?$/);if(m&&b)for(let c=+m[1];c<=+(m[2]||m[1]);c++)OV[c]=b});
+ const sg='prog3'+S.paras.length+'_'+S.paras[0].t.slice(0,30);let k0=0;
+ try{let sv=JSON.parse(localStorage.getItem(sg)||'null');
+ if(!sv)for(const z of [3500,1400,7000]){const o=JSON.parse(localStorage.getItem('prog2'+S.paras.length+'_'+z+'_'+S.paras[0].t.slice(0,30))||'null');if(o&&o.k>0){const G0=chunk(z);sv={...o,np:o.k>=G0.length?S.paras.length:G0[o.k][0].i};break}}
+ if(sv&&sv.np>0){const kk=G.findIndex(c=>c[0].i>=sv.np),done=kk<0;
+  if(confirm(done?'Ya terminaste de leer todos los fragmentos. Aceptar = rehacer solo el análisis final (voces, nombres, calificaciones y perfiles); Cancelar = empezar de cero.':`Hay un avance guardado hasta la página ~${S.paras[sv.np-1].pg} (quedan ${G.length-kk} fragmentos con el tamaño elegido). Aceptar = continuar; Cancelar = empezar de cero.`)){k0=done?G.length:kk;Object.assign(S,{ann:sv.ann,ps:sv.ps,vd:sv.vd,en:sv.en,nar:sv.nar,nb:sv.nb,vc:sv.vc,capAI:done?{}:sv.capAI,mismos:sv.mismos});lastN=sv.lastN||'';S.paras.forEach((p,i)=>{if(i<sv.np)$('#p'+i).classList.add('ok')});new Set([...Object.keys(S.ann),...Object.keys(S.nb)]).forEach(i=>paint(i));rEnt();rVoz();applyAI();rCap();draw()}}}catch(e){}
+ const applyOV=()=>{S.chs.forEach((c,ci)=>{const f=OV[c.k];if(!f)return;const ix=[];S.paras.forEach((p,i)=>{if(p.ci==ci)ix.push(i)});if(!ix.length||!$('#p'+ix[0]).classList.contains('ok'))return;const a=ix[0],b=ix[ix.length-1];
+  S.nar=S.nar.filter(n=>n.i<a||n.i>b);S.nar.push({i:a,n:f});ix.forEach(i=>{if(S.nb[i]){delete S.nb[i];$('#p'+i).innerHTML=esc(S.paras[i].t)}});S.nb[a]=f;ix.forEach(i=>paint(i))});rVoz()};applyOV();
+ if(!k0&&!confirm(`Este libro se revisará en ${G.length} fragmentos (unas ${G.length+Math.ceil(S.chs.length/6)+4} peticiones a la IA). El plan gratis puede no alcanzar en un solo día: el avance se guarda y puedes continuar después, incluso cambiando el tamaño de fragmento. ¿Empezar?`))return;
+ const grade=async D=>{S.capAI=S.capAI||{};for(let a=0;a<D.length&&!stop;a+=12){const B=D.slice(a,a+12).map(d=>({i:d.ci,titulo:d.t.slice(0,50),palabras:d.w,dialogo:Math.round(S.chs[d.ci].d/S.chs[d.ci].w*100)+'%',notas:d.cnt,problemas_graves:d.badTxt.slice(0,4),aciertos:d.funTxt.slice(0,3),veredictos:S.vd.filter(v=>v[0]==d.t).map(v=>v[1]).slice(0,3)}));
+   const r=await ask(`Eres jurado de un concurso literario y profesor de escritura. ${hard?'Sé implacable y exigente. ':''}Contexto del autor: ${bk||'ninguno'}. Datos por capítulo (las erratas y tildes pesan poco; pesan más la voz, el ritmo, la continuidad y la sobreexplicación): ${JSON.stringify(B)}. Califica cada capítulo de 0 a 100 con criterio exigente y coherente entre capítulos (60=flojo, 75=correcto, 85=muy bueno, 95+=excepcional; no regales notas altas). Responde SOLO JSON: {"capitulos":[{"i":número,"puntaje":número,"funciona":["máx 3 razones breves y concretas"],"cambiar":["máx 3 prioridades concretas de reescritura"]}]}`);
+   for(const c of r.capitulos||[])if(typeof c.puntaje=='number'&&D.some(d=>d.ci==c.i))S.capAI[c.i]={puntaje:Math.round(Math.min(100,Math.max(0,c.puntaje))),funciona:(c.funciona||[]).slice(0,3),cambiar:(c.cambiar||[]).slice(0,3)};
+   rCap();if(!loc)await sleep(4500)}};
+ const save=(k,g)=>{try{localStorage.setItem(sg,JSON.stringify({k:k+1,np:g[g.length-1].i+1,ann:S.ann,ps:S.ps,vd:S.vd,en:S.en,nar:S.nar,nb:S.nb,vc:S.vc,capAI:S.capAI,mismos:S.mismos,lastN}))}catch(e){}};
+ const V=$('#v');
+ try{for(let k=k0;k<G.length&&!stop;k++){const g=G[k],els=g.map(p=>$('#p'+p.i));els.forEach(e=>e.classList.add('rd'));
+  if($('#fo').checked)V.scrollTo({top:els[0].offsetTop-30,behavior:'smooth'});
+  $('#ap').textContent=`Fragmento ${k+1}/${G.length}`;$('#pb').style.width=(k/G.length*100)+'%';
+  const FQ=S.cand.slice(0,25).map(x=>DN(x)+' ('+x.c+')').join(', '),gl=Object.entries(S.en).sort((a,b)=>b[1].c-a[1].c).slice(0,60).map(([n,e])=>`${n} (${e.t}${e.r?': '+e.r:''})`).join('; '),nw=g.reduce((a,p)=>a+p.t.split(/\s+/).length,0),mx=Math.min(30,Math.max(8,Math.round(nw/200*(hard?1.5:1))));
+  let r;try{r=await ask(`Eres un profesor universitario de literatura y editor de editorial: exigente, directo y sin condescendencia (pero útil y concreto), revisando el borrador de un escritor novel hispanohablante. ${hard?'MODO DURO: actúa como jurado de concurso o profesor que corrige una tesis sin piedad: no suavices, señala todo problema real, cero elogios gratuitos y sé estricto con la gravedad. Siempre concreto y justificado, nunca insultante.':''}\nContexto del autor (respétalo, no marques como defecto lo que sea una decisión de estilo suya): ${bk||'ninguno'}\nFragmento del manuscrito. ${NV.length?'Narradores conocidos del libro: '+NV.join(', ')+'. Usa EXACTAMENTE esos nombres cuando corresponda (u otro si aparece una voz nueva); si no puedes saber quién narra, pon "?" y claro:false. Pistas: a quién llama por su nombre, quién es «mi hermana/mi madre/mi jefe», profesión, lugares, forma de hablar. ':''}${lastN?'El narrador al final del fragmento anterior era: '+lastN+'. ':''}${gl?'Glosario ya detectado (avisa solo si algo lo CONTRADICE de forma clara; es una lista PARCIAL: que un nombre no aparezca ahí NO es un error, puede ser un personaje que ya existía): '+gl+'. ':''}${FQ?'Nombres que aparecen MUCHAS veces en todo el libro (son personajes o lugares reales; jamás los marques como error): '+FQ+'. ':''}${(S.flag||[]).length?'Incoherencias ya señaladas (no las repitas, ni señales de nuevo la aparición de un nombre ya marcado): '+S.flag.slice(-12).join(' | ')+'. ':''}\nPárrafos numerados:\n${g.map(p=>`[${p.i}] ${p.t}`).join('\n')}\n\nResponde SOLO JSON: {"notas":[{"p":número,"tipo":"sobreexplicacion|relleno|mostrar|dialogo|ritmo|estilo|incoherencia|voz|ortografia|acierto","gravedad":1-3,"frase":"copia EXACTA (máx 20 palabras) de la frase problemática dentro del párrafo","comentario":"máx 25 palabras: qué falla y cómo arreglarlo"}],"narradores":[{"p":número del párrafo donde empieza esa voz (incluye siempre el primer párrafo del fragmento),"n":"nombre del narrador","claro":true,"voz":"rasgos de su voz, máx 15 palabras"}],"personajes":[{"n":"nombre","obs":"rasgo psicológico o motivación visible, máx 20 palabras"}],"entidades":[{"n":"texto exacto","tipo":"persona|apellido|empresa|lugar|objeto|otro","rel":"ej. empresa de Elizabeth, apellido de la familia de Elizabeth"}],"veredicto":"2 frases sobre este fragmento"}.\nTipos: sobreexplicacion=explica de más lo que ya se entiende; relleno=repite o no aporta; mostrar=cuenta emociones en vez de mostrarlas; dialogo=diálogo artificial; ritmo=frases o párrafos mal dosificados; estilo=redacción torpe, cliché o metáfora fallida; incoherencia=nombre, dato o hecho que contradice lo anterior (NO uses este tipo para erratas ni tildes); ortografia=tildes, puntuación, raya de diálogo o erratas (gravedad máx 2; en «frase» copia la palabra o signo erróneo exacto y propón una corrección DISTINTA; si no puedes, no lo marques); voz=la voz del narrador no se distingue o no queda claro quién narra (pon claro:false en narradores si al empezar el tramo el lector no puede saber quién habla); acierto=funciona.\nMáx ${mx} notas (máx 2 por párrafo, nunca dos del mismo tipo en un párrafo), solo lo importante, y la «frase» debe existir literalmente en el texto. NUNCA menciones los números entre corchetes ni números de capítulo en tus comentarios: cita la frase. No inventes citas. Gravedad: 3=error objetivo, incoherencia de continuidad o fallo grave que rompe la lectura; 2=mejora clara; 1=detalle menor (una metáfora larga es «estilo», gravedad máx 2). Si tu comentario es un elogio, el tipo DEBE ser «acierto»; nunca uses otro tipo para elogiar, y «voz» es solo para problemas de voz. El narrador es un personaje en primera persona: su ironía, sus errores de juicio o su ignorancia (por ejemplo, creer que unos síntomas son nervios) son recursos narrativos, no errores del autor, salvo que contradigan hechos del texto. Antes de marcar algo comprueba que el problema existe de verdad en la frase; si dudas, no lo marques. NUNCA marques un nombre solo porque no esté en el glosario: los personajes nuevos aparecen a lo largo del libro. Marca un nombre como incoherencia únicamente si una misma persona, identificada por su parentesco o rol (por ejemplo «su hermano Esteban»), aparece con otro nombre que no es un apodo ni diminutivo (por ejemplo «Sebastián»). Revisa también tiempos verbales que cambian sin razón, la puntuación del diálogo y datos que se contradicen (horas, lugares, saber algo que aún no sabía). Distingue personas, apellidos de familia, empresas, lugares y objetos (un nombre compuesto, como el modelo de un auto, es UNA sola entidad de tipo objeto). ${hard?'Incluye como máximo un acierto.':'Incluye un acierto si lo hay.'}`)}catch(e){
+   if(e.kind=='block'||e.kind=='trunc'||e.kind=='parse'){els.forEach(x=>x.classList.remove('rd'));
+    if(g.length>1){const h=g.length>>1;G.splice(k,1,g.slice(0,h),g.slice(h));k--;$('#ap').textContent='Tramo problemático ('+e.message.slice(0,80)+'): lo divido y reintento…';continue}
+    S.skipped.push({i:g[0].i,why:e.message});els.forEach(x=>x.classList.add('ok','sk'));$('#ap').textContent='Omití un párrafo que la IA no pudo procesar: '+e.message.slice(0,90);save(k,g);continue}
+   throw e}
+  for(const n of [...(OV[S.chs[g[0].ci].k]?[{p:g[0].i,n:OV[S.chs[g[0].ci].k],claro:true,voz:''}]:(r.narradores||[]))].sort((a,b)=>a.p-b.p)){if(!S.paras[n.p]||n.p<g[0].i||n.p>g[g.length-1].i||!n.n)continue;let nm=String(n.n).trim();const nz=a=>a.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),fv=NV.find(a=>nz(a)==nz(nm)||(Math.min(a.length,nm.length)>=3&&(nz(nm).startsWith(nz(a))||nz(a).startsWith(nz(nm)))));if(fv)nm=fv;
+   if(nm=='?'){(S.ann[n.p]=S.ann[n.p]||[]).push({t:'voz',g:2,c:'No se sabe quién narra en este tramo. Añade una pista propia de esa voz (nombre, gesto, obsesión, forma de hablar).',f:''});continue}
+   S.nar.push({i:+n.p,n:nm});if(nm!=lastN){S.nb[n.p]=nm;lastN=nm}(S.vc[nm]=S.vc[nm]||[]).push(n.voz);
+   if(n.claro===false)(S.ann[n.p]=S.ann[n.p]||[]).push({t:'voz',g:2,c:'No queda claro quién narra al empezar este tramo. Añade una pista propia de esa voz (gesto, obsesión, forma de hablar).',f:''})}
+  for(const n of r.notas||[]){if(!S.paras[n.p]||n.p<g[0].i||n.p>g[g.length-1].i||!TY.some(t=>t[0]==n.tipo))continue;const ya=S.ann[n.p]||[],cm=String(n.comentario||'').replace(/\[\d+\]/g,'otro punto del texto'),fr=n.frase||'';let ti=n.tipo,gr=Math.min(3,Math.max(1,+n.gravedad||1));
+ if(ti!='acierto'&&(/^(muy buen[oa]?|buen[oa]?|excelente|acertad|logrado|bien (manejad|resuelt)|funciona|encaja)/i.test(cm.replace(/^[^A-Za-zÁÉÍÓÚáéíóú]+/,''))||/buena elección|bien manejad/i.test(cm))){ti='acierto';gr=1}
+ if(ti=='ortografia')gr=Math.min(gr,2);
+ if(ya.length>=2||ya.some(x=>x.t==ti||(x.f&&fr&&(x.f.includes(fr)||fr.includes(x.f)))))continue;ya.push({t:ti,g:gr,c:cm,f:fr});S.ann[n.p]=ya;if(ti=='incoherencia'){(S.flag=S.flag||[]).push(cm.slice(0,90))}}
+  g.forEach(p=>paint(p.i));
+  for(const c of r.personajes||[])(S.ps[c.n]=S.ps[c.n]||[]).push(c.obs);
+  for(const e of r.entidades||[]){if(!e.n)continue;const x=S.en[e.n]=S.en[e.n]||{t:e.tipo||'otro',r:e.rel||'',c:0};x.c++;if(e.rel&&!x.r)x.r=e.rel}
+  if(r.veredicto)S.vd.push([S.chs[g[0].ci].t,r.veredicto]);els.forEach(e=>{e.classList.remove('rd');e.classList.add('ok')});rEnt();rVoz();rCap();
+  save(k,g);
+  {const pend=capData().filter(d=>d.ci<g[0].ci&&d.an>=.5&&!(S.capAI||{})[d.ci]);if(pend.length>=6){try{$('#ap').textContent='Calificando capítulos…';await grade(pend.slice(0,12))}catch(e){}}}
+  if(!loc)await sleep(pv=='x'?2500:4500)}
+  const T=Object.entries(S.ann).flatMap(([i,a])=>a.filter(n=>n.g==3&&n.t!='acierto').map(n=>({i,...n}))).slice(0,30);
+  $('#top').innerHTML=T.map(n=>`<div class="note alta" data-i="${n.i}" style="cursor:pointer"><b>${esc(S.chs[S.paras[n.i].ci].t.slice(0,35))} (pág. ~${S.paras[n.i].pg})</b> · ${TN(n.t)[3]} ${TN(n.t)[1]}: ${esc(n.c)}</div>`).join('')||'Nada grave.';
+  document.querySelectorAll('#top [data-i]').forEach(d=>d.onclick=()=>{$('#p'+d.dataset.i).scrollIntoView({block:'center'});show(+d.dataset.i)});
+  const fin=async(lb,fn)=>{if(stop)return;try{$('#ap').textContent=lb;await fn()}catch(e){S.errs.push(lb+': '+e.message)}};
+  if(voces().length>1)await fin('Comparando las voces…',async()=>rVoz(await ask(`Eres editor literario. Libro en primera persona con varios narradores que cambian sin aviso; el lector debe deducir quién habla por su personalidad. Métricas por narrador: ${JSON.stringify(voces())}. Rasgos de voz detectados: ${JSON.stringify(Object.fromEntries(Object.entries(S.vc).map(([n,a])=>[n,a.slice(0,8)])))}. Evalúa si las voces se distinguen entre sí y qué haría cada una más reconocible (léxico, ritmo, obsesiones, humor). Responde SOLO JSON: {"voces":[{"n":"nombre","distintiva":"alta|media|baja","diagnostico":"máx 30 palabras","sugerencia":"máx 25 palabras"}],"general":"2 frases"}`)));
+  if(Object.keys(S.en).length)await fin('Revisando continuidad de nombres…',async()=>{const E=Object.entries(S.en).map(([n,e])=>({n,t:e.t,r:e.r,c:e.c})).sort((a,b)=>b.c-a.c).slice(0,150);
+   const r=await ask(`Eres corrector de continuidad de una novela. Nombres propios detectados (n=texto exacto, t=tipo, r=relación, c=veces detectado): ${JSON.stringify(E)}. Alertas locales: ${JSON.stringify(S.nt.filter(n=>/apellidos|escritura/.test(n[1])).map(n=>n[1]).slice(0,20))}. IMPORTANTE: descarta falsos positivos (apodos y diminutivos como Eli/Eliz/Santy, nombres distintos como Marta y María, mayúsculas de énfasis, tildes faltantes) y devuelve solo alertas reales y concretas. Detecta variantes del mismo personaje, nombres mal escritos, apellidos que cambian, empresas o lugares confundidos con personas o apellidos, y contradicciones de relación. Además indica en «mismos» los grupos de nombres que son la MISMA persona (variantes, apodos, diminutivos; el primero es el nombre canónico). Responde SOLO JSON: {"alertas":["frase concreta con los nombres exactos"],"mismos":[["Leonardo","Leo"]]}`);S.al=r.alertas||[];S.mismos=r.mismos||[];rEnt();applyAI();draw()});
+  await fin('Calificando capítulos…',async()=>grade(capData().filter(d=>d.an>=.5&&!(S.capAI||{})[d.ci])));
+  const nm=Object.entries(S.ps).sort((a,b)=>b[1].length-a[1].length).slice(0,6);
+  if(nm.length)await fin('Armando perfiles…',async()=>{const r=await ask(`Eres psicólogo literario. Con estas observaciones por personaje de una novela, escribe un perfil de cada uno (motivación, miedo central, herida, contradicción y arco), 3 líneas máx. Observaciones: ${JSON.stringify(Object.fromEntries(nm.map(([n,o])=>[n,o.slice(0,25)])))}. Responde SOLO JSON: {"perfiles":[{"n":"nombre","perfil":"texto"}]}`);S.pf=r.perfiles||[];
+   $('#aiperf').innerHTML=S.pf.map(x=>`<div class="note baja"><b>${esc(x.n)}</b>: ${esc(x.perfil)}</div>`).join('')});
+  await fin('Redactando el informe final…',async()=>{const tc={};Object.values(S.ann).flat().forEach(n=>tc[n.t]=(tc[n.t]||0)+1);
+   const cs=Object.entries(S.capAI||{}).map(([i,a])=>({c:S.chs[i].t.slice(0,32),n:a.puntaje})).sort((a,b)=>a.n-b.n),gr=Object.entries(S.ann).flatMap(([i,a])=>a.filter(n=>n.g==3&&n.t!='acierto'&&n.t!='ortografia').map(n=>`${S.chs[S.paras[i].ci].t.slice(0,28)} (pág. ~${S.paras[i].pg}): ${n.c}`)).slice(0,45);
+   const r=await ask(`Eres editor jefe de una editorial. Con los datos de la revisión de TODO el manuscrito, redacta un informe final honesto y útil para el autor. Contexto del autor: ${bk||'ninguno'}. Notas por tipo: ${JSON.stringify(tc)}. Calificaciones de capítulos (peores y mejores): ${JSON.stringify([...cs.slice(0,10),...cs.slice(-5)])}. Problemas graves señalados (pueden incluir falsos positivos; no los trates como hechos seguros): ${JSON.stringify(gr)}. Alertas de nombres: ${JSON.stringify((S.al||[]).slice(0,15))}. Métricas de voces: ${JSON.stringify(voces())}. No inventes datos que no estén aquí. Responde SOLO JSON: {"resumen":"3 frases","fortalezas":["máx 5"],"problemas":[{"titulo":"corto","detalle":"máx 40 palabras","donde":"capítulos o páginas"}],"plan":["máx 8 pasos de revisión priorizados y concretos"]}`);rFinal(r)});
+  applyAI();draw();rCap();$('#pb').style.width='100%';$('#ap').textContent=stop?'Detenido (avance guardado).':S.errs.length?'Terminó, pero fallaron pasos finales ('+S.errs.join(' | ')+'). Pulsa «Revisar con IA» y acepta para reintentarlos.':'Revisión completa ✓'+(S.skipped.length?` (omití ${S.skipped.length} tramo(s) que la IA no pudo procesar; están marcados con borde rojo punteado)`:'')}catch(x){document.querySelectorAll('.rd').forEach(e=>e.classList.remove('rd'));$('#ap').textContent='Error: '+x.message}};
+$('#dl2').onclick=()=>{if(!S||!S.vd)return;const t=['INFORME DEL PROFESOR (IA)','',...(S.fiT||[]),'',...S.vd.map(v=>v[0]+': '+v[1]),'','PUNTUACIÓN POR CAPÍTULO',...(S.cdt||[]).flatMap(d=>{const a=(S.capAI||{})[d.ci];return[`${d.t} (pág. ~${d.pg[0]}-${d.pg[1]}): ${a?a.puntaje:d.score}/100`,...(a?a.funciona:d.fun).map(x=>'  + '+x),...(a?a.cambiar:d.cam).map(x=>'  - '+x)]}),'','NOTAS',...Object.entries(S.ann).flatMap(([i,a])=>a.map(n=>`[${n.t} ${n.g}/3] ${S.chs[S.paras[i].ci].t} (pág. ~${S.paras[i].pg}): «${S.paras[i].t.slice(0,100)}…» → ${n.c}`)),'','VOCES NARRATIVAS',...(S.vzt||[]),'','ALERTAS DE NOMBRES',...(S.al||[]),'','PERFILES',...S.pf.map(p=>p.n+': '+p.perfil)].join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/plain'}));a.download='informe-ia.txt';a.click()};
+
+$('#pc').onclick=async()=>{$('#ap').textContent='Probando conexión…';try{const r=await ask('Responde SOLO este JSON: {"ok":true}');$('#ap').textContent='Conexión OK ✓ con «'+$('#md').value+'»'+(r&&r.ok?'':' (respuesta rara, pero responde)')}catch(e){$('#ap').textContent='Falló ('+(e.kind||'?')+'): '+e.message}};
+$('#fb').onclick=async()=>{if(!S||!S.paras)return;const mode=$('#fm').value,pv=$('#pv').value;if(pv!='o'&&!$('#ky').value.trim()){$('#fs').textContent='Falta la API key (arriba).';return}
+ $('#fs').textContent='Pensando…';const tail=S.paras.slice(-14).map(p=>p.t).join('\n').slice(-4500),ps=(S.pf||[]).map(p=>p.n+': '+p.perfil).join('\n'),vd=(S.vd||[]).map(v=>v[0].slice(0,24)+': '+v[1]).slice(-30).join('\n'),who=$('#fn2').value.trim();
+ let sample='';if(mode=='e'&&who){const cz=canonN(),NR=narrOf(),acc=[];for(let i=S.paras.length-1;i>=0&&acc.join(' ').split(/\s+/).length<450;i--)if(NR[i]&&cz(NR[i]).toLowerCase()==who.toLowerCase())acc.unshift(S.paras[i].t);sample=acc.join('\n')}
+ const ctx=`Contexto del autor: ${$('#bk').value.trim()||'ninguno'}.\nLo que el autor dice que le falta: ${$('#fa').value.trim()||'terminar el libro'}.\nPerfiles de personajes: ${ps||'no disponibles'}.\nResumen por tramos (los últimos): ${vd||'no disponible'}.\nFinal del texto escrito hasta ahora:\n${tail}`;
+ try{if(mode=='i'){const r=await ask(`Eres editor y consultor narrativo. ${ctx}\n\nPropón ideas para ayudar al autor a terminar su novela, coherentes con lo ya escrito. No inventes hechos que contradigan el texto y, si no estás seguro de algo, dilo. Responde SOLO JSON: {"cabos_sueltos":[{"hilo":"","como_cerrarlo":""}],"finales":[{"titulo":"","descripcion":"máx 50 palabras","riesgo":"qué podría salir mal"}],"escenas":[{"narrador":"","idea":"máx 40 palabras","conflicto":""}],"consejos":["máx 5"]}`);
+   $('#ayuda').innerHTML=`<b>🧵 Cabos sueltos</b>${(r.cabos_sueltos||[]).map(x=>`<div class="note media"><b>${esc(x.hilo||'')}</b><br><small>${esc(x.como_cerrarlo||'')}</small></div>`).join('')}<b>🏁 Finales posibles</b>${(r.finales||[]).map(x=>`<div class="note baja"><b>${esc(x.titulo||'')}</b>: ${esc(x.descripcion||'')}<br><small>Riesgo: ${esc(x.riesgo||'')}</small></div>`).join('')}<b>🎬 Próximas escenas</b>${(r.escenas||[]).map(x=>`<div class="note baja"><b>${esc(x.narrador||'')}</b>: ${esc(x.idea||'')}<br><small>Conflicto: ${esc(x.conflicto||'')}</small></div>`).join('')}<b>💡 Consejos</b>${(r.consejos||[]).map(x=>`<div class="note">${esc(x)}</div>`).join('')}`}
+  else{const r=await ask(`Eres escritor fantasma al servicio del autor. ${ctx}\nMuestra de la voz del narrador pedido (${who||'elige el más adecuado'}):\n${sample||'(sin muestra: usa la voz del final del texto)'}\n\nEscribe un borrador CORTO (300 a 450 palabras) de la siguiente escena, en primera persona y con esa voz (largo de frase, humor, obsesiones, raya de diálogo —), sin cerrar la historia: es una propuesta para inspirar al autor. Responde SOLO JSON: {"narrador":"","titulo":"","borrador":"texto","por_que":"1-2 frases sobre por qué esta escena sirve a la trama"}`);
+   $('#ayuda').innerHTML=`<div class="v" style="max-height:none;white-space:pre-wrap"><b>${esc(r.titulo||'')}</b> · narra ${esc(r.narrador||who||'?')}\n\n${esc(r.borrador||'')}</div><div class="note baja">${esc(r.por_que||'')}</div><button id="cp" style="background:var(--mu)">Copiar</button>`;$('#cp').onclick=()=>navigator.clipboard.writeText(r.borrador||'')}
+  $('#fs').textContent='Listo ✓'}catch(e){$('#fs').textContent='Error ('+(e.kind||'?')+'): '+e.message}};
+$('#lm').onclick=async()=>{const k=$('#ky').value.trim();if(!k){$('#ap').textContent='Primero pega tu API key.';return}
+ try{$('#ap').textContent='Buscando modelos…';const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':k}});if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,120));
+  const L=((await r.json()).models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace('models/','')),
+  F=L.filter(n=>/^gemini-.*flash/.test(n)&&!/(image|tts|live|thinking|exp|lite|audio|preview)/.test(n)).sort().reverse(),pick=L.includes('gemini-flash-latest')?'gemini-flash-latest':(F.filter(n=>!/omni/.test(n))[0]||L.find(n=>/flash/.test(n))||L[0]);
+  if(!pick)throw new Error('no hay modelos disponibles');$('#md').value=pick;$('#ap').textContent='Usaré «'+pick+'». Otros disponibles: '+L.slice(0,12).join(', ')}catch(x){$('#ap').textContent='No pude listar modelos: '+x.message}};
+</script></body></html>
